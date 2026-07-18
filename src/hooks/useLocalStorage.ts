@@ -1,6 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
-import type { AppData, Goal, GalleryPhoto, JournalEntry, PersonalObjective, ObjectiveCheckin } from '@/types';
-
+﻿import { useState, useCallback, useEffect } from 'react';
+import type {
+  AppData,
+  Goal,
+  GalleryPhoto,
+  JournalEntry,
+  PersonalObjective
+} from '@/types';
 const STORAGE_KEY = 'jc_island_data';
 
 const START_DATE = new Date('2026-04-20T00:00:00');

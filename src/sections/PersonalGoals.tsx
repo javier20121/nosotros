@@ -1,7 +1,12 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, MessageSquare, Flame, X, Plus, Trash2 } from 'lucide-react';
-import type { PersonalObjective, ObjectiveCheckin } from '@/types';
+import {
+  ChevronDown,
+  Check,
+  MessageSquare,
+  Flame,
+  Trash2
+} from 'lucide-react';import type { PersonalObjective, ObjectiveCheckin } from '@/types';
 
 interface PersonalGoalsProps {
   objectives: PersonalObjective[];
