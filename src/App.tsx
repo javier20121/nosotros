@@ -10,6 +10,7 @@ import Journal from '@/sections/Journal';
 import LoveLetters from '@/sections/LoveLetters';
 import Footer from '@/sections/Footer';
 import Navigation from '@/components/Navigation';
+import ItemsDemo from '@/components/ItemsDemo';
 import { useAppData } from '@/hooks/useLocalStorage';
 
 const sectionIds = ['hero', 'timeline', 'gallery', 'goals', 'personal-goals', 'journal', 'letters'];
@@ -147,6 +148,8 @@ export default function App() {
             letters={data.letters}
             onOpenLetter={openLetter}
           />
+
+          <ItemsDemo />
 
           <Footer />
         </main>
