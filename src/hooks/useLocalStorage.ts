@@ -1,10 +1,7 @@
 ﻿import { useState, useCallback, useEffect } from 'react';
 import type {
   AppData,
-  Goal,
   GalleryPhoto,
-  JournalEntry,
-  PersonalObjective
 } from '@/types';
 const STORAGE_KEY = 'jc_island_data';
 
@@ -707,111 +704,16 @@ function saveData(data: AppData) {
   }
 }
 
-export function useAppData() {
+// useAppData ahora vive en ./useAppData.ts y combina Supabase + local.
+// Este archivo conserva el estado local de milestones/photos/letters.
+export function useLocalAppData() {
   const [data, setData] = useState<AppData>(loadData);
 
   useEffect(() => {
     saveData(data);
   }, [data]);
 
-  // Goals CRUD
-  const addGoal = useCallback((goal: Omit<Goal, 'id' | 'createdAt'>) => {
-    const newGoal: Goal = {
-      ...goal,
-      id: crypto.randomUUID(),
-      createdAt: new Date().toISOString(),
-    };
-    setData(prev => ({ ...prev, goals: [...prev.goals, newGoal] }));
-  }, []);
-
-  const updateGoal = useCallback((id: string, updates: Partial<Goal>) => {
-    setData(prev => ({
-      ...prev,
-      goals: prev.goals.map(g => g.id === id ? { ...g, ...updates } : g),
-    }));
-  }, []);
-
-  const addPhotoToGoal = useCallback((id: string, photoSrc: string) => {
-    setData(prev => ({
-      ...prev,
-      goals: prev.goals.map(g =>
-        g.id === id ? { ...g, photos: [...g.photos, photoSrc] } : g
-      ),
-    }));
-  }, []);
-
-  const deletePhotoFromGoal = useCallback((goalId: string, photoIndex: number) => {
-    setData(prev => ({
-      ...prev,
-      goals: prev.goals.map(g =>
-        g.id === goalId ? { ...g, photos: g.photos.filter((_, i) => i !== photoIndex) } : g
-      ),
-    }));
-  }, []);
-
-  const deleteGoal = useCallback((id: string) => {
-    setData(prev => ({
-      ...prev,
-      goals: prev.goals.filter(g => g.id !== id),
-    }));
-  }, []);
-
-  // Personal Objectives CRUD
-  const toggleObjectiveTask = useCallback((objectiveId: string, taskId: string) => {
-    setData(prev => ({
-      ...prev,
-      personalObjectives: prev.personalObjectives.map(obj =>
-        obj.id === objectiveId
-          ? {
-              ...obj,
-              tasks: obj.tasks.map(t =>
-                t.id === taskId ? { ...t, done: !t.done } : t
-              ),
-            }
-          : obj
-      ),
-    }));
-  }, []);
-
-  const addObjectiveCheckin = useCallback((objectiveId: string, note: string) => {
-    const today = new Date().toISOString().split('T')[0];
-    setData(prev => ({
-      ...prev,
-      personalObjectives: prev.personalObjectives.map(obj =>
-        obj.id === objectiveId
-          ? {
-              ...obj,
-              checkins: [
-                ...obj.checkins.filter(c => c.date !== today),
-                { date: today, note },
-              ],
-            }
-          : obj
-      ),
-    }));
-  }, []);
-
-  const addObjective = useCallback((objective: Omit<PersonalObjective, 'id' | 'createdAt' | 'checkins'>) => {
-    const newObj: PersonalObjective = {
-      ...objective,
-      id: crypto.randomUUID(),
-      checkins: [],
-      createdAt: new Date().toISOString(),
-    };
-    setData(prev => ({
-      ...prev,
-      personalObjectives: [...prev.personalObjectives, newObj],
-    }));
-  }, []);
-
-  const deleteObjective = useCallback((id: string) => {
-    setData(prev => ({
-      ...prev,
-      personalObjectives: prev.personalObjectives.filter(o => o.id !== id),
-    }));
-  }, []);
-
-  // Photos CRUD
+  // Photos (local)
   const addPhoto = useCallback((photo: Omit<GalleryPhoto, 'id'>) => {
     const newPhoto: GalleryPhoto = { ...photo, id: crypto.randomUUID() };
     setData(prev => ({
@@ -820,23 +722,7 @@ export function useAppData() {
     }));
   }, []);
 
-  const deletePhoto = useCallback((id: string) => {
-    setData(prev => ({
-      ...prev,
-      photos: prev.photos.filter(p => p.id !== id),
-    }));
-  }, []);
-
-  // Journal CRUD
-  const addJournalEntry = useCallback((entry: Omit<JournalEntry, 'id'>) => {
-    const newEntry: JournalEntry = { ...entry, id: crypto.randomUUID() };
-    setData(prev => ({
-      ...prev,
-      journal: [newEntry, ...prev.journal],
-    }));
-  }, []);
-
-  // Letters
+  // Letters (local)
   const openLetter = useCallback((id: string) => {
     setData(prev => ({
       ...prev,
@@ -847,18 +733,7 @@ export function useAppData() {
   return {
     data,
     startDate: START_DATE,
-    addGoal,
-    updateGoal,
-    addPhotoToGoal,
-    deletePhotoFromGoal,
-    deleteGoal,
-    toggleObjectiveTask,
-    addObjectiveCheckin,
-    addObjective,
-    deleteObjective,
     addPhoto,
-    deletePhoto,
-    addJournalEntry,
     openLetter,
   };
 }
