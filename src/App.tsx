@@ -11,7 +11,7 @@ import LoveLetters from '@/sections/LoveLetters';
 import Footer from '@/sections/Footer';
 import Navigation from '@/components/Navigation';
 import ItemsDemo from '@/components/ItemsDemo';
-import { useAppData } from '@/hooks/useLocalStorage';
+import { useAppData } from '@/hooks/useAppData';
 
 const sectionIds = ['hero', 'timeline', 'gallery', 'goals', 'personal-goals', 'journal', 'letters'];
 
