@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Clock, Sparkles, Compass, Mail } from 'lucide-react';
+import { Home, Clock, Sparkles, Compass, Mail, ListChecks } from 'lucide-react';
 
 interface NavigationProps {
   activeSection: string;
@@ -13,6 +13,7 @@ const navItems = [
   { id: 'timeline', label: 'Historia', icon: Clock },
   { id: 'gallery', label: 'Galería', icon: Sparkles },
   { id: 'goals', label: 'Aventuras', icon: Compass },
+  { id: 'personal-goals', label: 'Objetivos', icon: ListChecks },
   { id: 'letters', label: 'Cartas', icon: Mail },
 ];
 
