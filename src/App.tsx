@@ -19,6 +19,8 @@ export default function App() {
   const {
     data,
     startDate,
+    isLoading,
+    error,
     addGoal,
     updateGoal,
     addPhotoToGoal,
@@ -92,6 +94,24 @@ export default function App() {
 
   return (
     <div className="relative">
+      {/* Loader global mientras Supabase devuelve goals/objectives/journal */}
+      {isLoading && !showGarden && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
+          <div className="flex flex-col items-center gap-2">
+            <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+            <p className="text-sm text-muted-foreground">Cargando tus datos…</p>
+          </div>
+        </div>
+      )}
+
+      {/* Banner de error si alguna query a Supabase falló */}
+      {error && !showGarden && (
+        <div className="fixed top-4 right-4 z-50 max-w-md p-3 rounded-md bg-red-50 border border-red-200 text-sm text-red-800 shadow-lg">
+          <p className="font-semibold">Error de Supabase</p>
+          <p className="font-mono text-xs mt-1 break-all">{error}</p>
+        </div>
+      )}
+
       {/* Flower Garden Opening Scene */}
       <AnimatePresence>
         {showGarden && (

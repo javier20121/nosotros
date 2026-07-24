@@ -60,7 +60,9 @@ export function useGoals() {
               prev.map((g) => (g.id === (p.new as DbGoal).id ? fromDb(p.new as DbGoal) : g))
             )
           } else if (p.eventType === 'DELETE') {
-            setGoals((prev) => prev.filter((g) => g.id !== (p.old as DbGoal).id))
+            const oldId = (p.old as Partial<DbGoal>)?.id
+            if (!oldId) return
+            setGoals((prev) => prev.filter((g) => g.id !== oldId))
           }
         }
       )

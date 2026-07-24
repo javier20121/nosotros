@@ -63,9 +63,9 @@ export function useJournalEntries() {
               )
             )
           } else if (p.eventType === 'DELETE') {
-            setEntries((prev) =>
-              prev.filter((e) => e.id !== (p.old as DbJournal).id)
-            )
+            const oldId = (p.old as Partial<DbJournal>)?.id
+            if (!oldId) return
+            setEntries((prev) => prev.filter((e) => e.id !== oldId))
           }
         }
       )

@@ -67,9 +67,9 @@ export function usePersonalObjectives() {
               )
             )
           } else if (p.eventType === 'DELETE') {
-            setObjectives((prev) =>
-              prev.filter((o) => o.id !== (p.old as DbObjective).id)
-            )
+            const oldId = (p.old as Partial<DbObjective>)?.id
+            if (!oldId) return
+            setObjectives((prev) => prev.filter((o) => o.id !== oldId))
           }
         }
       )
