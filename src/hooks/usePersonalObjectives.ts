@@ -33,7 +33,7 @@ function getLegacyObjectives(): PersonalObjective[] {
     const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
     if (!Array.isArray(parsed?.personalObjectives)) return []
     return parsed.personalObjectives.map((o: any) => ({
-      id: o.id || crypto.randomUUID(),
+      id: crypto.randomUUID(),
       owner: o.owner || 'javi',
       title: String(o.title || ''),
       description: String(o.description || ''),
@@ -41,7 +41,7 @@ function getLegacyObjectives(): PersonalObjective[] {
       priority: o.priority ?? 0,
       tasks: Array.isArray(o.tasks)
         ? o.tasks.map((t: any) => ({
-            id: t.id || crypto.randomUUID(),
+            id: crypto.randomUUID(),
             title: String(t.title || ''),
             done: Boolean(t.done),
           }))
@@ -118,6 +118,7 @@ export function usePersonalObjectives() {
   const addObjective = useCallback(
     async (o: Omit<PersonalObjective, 'id' | 'createdAt'>) => {
       const { error } = await supabase.from('personal_objectives').insert({
+        id: crypto.randomUUID(),
         owner: o.owner,
         title: o.title,
         description: o.description,

@@ -80,7 +80,7 @@ export function useAppData() {
       legacy.goals,
       'goals',
       (g) => ({
-        id: g.id,
+        id: crypto.randomUUID(),
         title: g.title,
         description: g.description ?? '',
         status: g.status ?? 'pending',
@@ -95,7 +95,7 @@ export function useAppData() {
       legacy.personalObjectives,
       'personal_objectives',
       (o) => ({
-        id: o.id,
+        id: crypto.randomUUID(),
         owner: o.owner,
         title: o.title,
         description: o.description ?? '',
@@ -112,7 +112,7 @@ export function useAppData() {
       legacy.journal,
       'journal_entries',
       (e) => ({
-        id: e.id,
+        id: crypto.randomUUID(),
         title: e.title,
         date: e.date,
         location: e.location ?? '',

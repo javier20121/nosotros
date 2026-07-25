@@ -29,14 +29,14 @@ function getLegacyGoals(): Goal[] {
     const parsed = JSON.parse(raw) as { goals?: any[] }
     if (!Array.isArray(parsed?.goals)) return []
     return parsed.goals.map((g: any) => ({
-      id: g.id || crypto.randomUUID(),
+      id: crypto.randomUUID(),
       title: String(g.title || ''),
       description: String(g.description || ''),
       status: g.status || 'pending',
       photos: Array.isArray(g.photos) ? g.photos : [],
       tasks: Array.isArray(g.tasks)
         ? g.tasks.map((t: any) => ({
-            id: t.id || crypto.randomUUID(),
+            id: crypto.randomUUID(),
             title: String(t.title || ''),
             done: Boolean(t.done),
           }))
@@ -108,6 +108,7 @@ export function useGoals() {
 
   const addGoal = useCallback(async (g: Omit<Goal, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('goals').insert({
+      id: crypto.randomUUID(),
       title: g.title,
       description: g.description,
       status: g.status,
