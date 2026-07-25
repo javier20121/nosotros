@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { AnimatePresence } from 'framer-motion';
+import { Analytics } from '@vercel/analytics/react';
 import FlowerGarden from '@/sections/FlowerGarden';
 import Hero from '@/sections/Hero';
 import Timeline from '@/sections/Timeline';
@@ -94,6 +95,8 @@ export default function App() {
 
   return (
     <div className="relative">
+      <Analytics />
+      
       {/* Loader global mientras Supabase devuelve goals/objectives/journal */}
       {isLoading && !showGarden && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none">
