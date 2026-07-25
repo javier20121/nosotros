@@ -39,7 +39,7 @@ const defaultData: AppData = {
     },
   ],
   photos: [
-    { id: crypto.randomUUID(), src: '/images/gallery-1.jpg', date: '15 Ago 2022', note: 'Atardecer en la playa', aspectRatio: '3/4' as const },
+    { id: crypto.randomUUID(), src: '/imagenes/imagen_abrazo.jpeg', date: '15 Ago 2022', note: 'Atardecer en la playa', aspectRatio: '3/4' as const },
     { id: crypto.randomUUID(), src: '/images/gallery-2.jpg', date: '20 Sep 2022', note: 'Café y croissants', aspectRatio: '4/3' as const },
     { id: crypto.randomUUID(), src: '/images/gallery-3.jpg', date: '5 Nov 2022', note: 'Bailando bajo la lluvia', aspectRatio: '1/1' as const },
     { id: crypto.randomUUID(), src: '/images/gallery-4.jpg', date: '14 Feb 2023', note: 'Nuestras manos, nuestro pacto', aspectRatio: '16/9' as const },
