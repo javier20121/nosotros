@@ -31,9 +31,9 @@ const fromDb = (r: DbObjective): PersonalObjective => ({
 function loadObjectivesFromStorage(): PersonalObjective[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
+    if (!raw) return getDefaultObjectives()
     const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
-    if (!Array.isArray(parsed?.personalObjectives)) return []
+    if (!Array.isArray(parsed?.personalObjectives) || parsed.personalObjectives.length === 0) return getDefaultObjectives()
     return parsed.personalObjectives.map((o: any) => ({
       id: o.id || crypto.randomUUID(),
       owner: o.owner || 'javi',
@@ -52,8 +52,12 @@ function loadObjectivesFromStorage(): PersonalObjective[] {
       createdAt: o.createdAt || new Date().toISOString(),
     }))
   } catch {
-    return []
+    return getDefaultObjectives()
   }
+}
+
+function getDefaultObjectives(): PersonalObjective[] {
+  return []
 }
 
 function saveObjectivesToStorage(objectives: PersonalObjective[]) {

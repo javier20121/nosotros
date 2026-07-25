@@ -96,7 +96,15 @@ function loadData(): AppData {
 
 function saveData(data: AppData) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const existing = raw ? JSON.parse(raw) : {}
+    const toSave = {
+      ...existing,
+      milestones: data.milestones,
+      photos: data.photos,
+      letters: data.letters,
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave))
   } catch {
     // ignore
   }
