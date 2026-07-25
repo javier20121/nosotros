@@ -1,8 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { PersonalObjective, GoalTask, ObjectiveCheckin } from '@/types'
-
-const STORAGE_KEY = 'jc_island_data'
 
 type DbObjective = {
   id: string
@@ -28,55 +26,19 @@ const fromDb = (r: DbObjective): PersonalObjective => ({
   createdAt: r.created_at,
 })
 
-function loadObjectivesFromStorage(): PersonalObjective[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return getDefaultObjectives()
-    const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
-    if (!Array.isArray(parsed?.personalObjectives) || parsed.personalObjectives.length === 0) return getDefaultObjectives()
-    return parsed.personalObjectives.map((o: any) => ({
-      id: o.id || crypto.randomUUID(),
-      owner: o.owner || 'javi',
-      title: String(o.title || ''),
-      description: String(o.description || ''),
-      emoji: o.emoji || '🌱',
-      priority: o.priority ?? 0,
-      tasks: Array.isArray(o.tasks)
-        ? o.tasks.map((t: any) => ({
-            id: t.id || crypto.randomUUID(),
-            title: String(t.title || ''),
-            done: Boolean(t.done),
-          }))
-        : [],
-      checkins: Array.isArray(o.checkins) ? o.checkins : [],
-      createdAt: o.createdAt || new Date().toISOString(),
-    }))
-  } catch {
-    return getDefaultObjectives()
-  }
-}
-
-function getDefaultObjectives(): PersonalObjective[] {
-  return []
-}
-
-function saveObjectivesToStorage(objectives: PersonalObjective[]) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const data = raw ? JSON.parse(raw) : {}
-    data.personalObjectives = objectives
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    // ignore
-  }
-}
-
-export function usePersonalObjectives() {
-  const [objectives, setObjectives] = useState<PersonalObjective[]>(loadObjectivesFromStorage)
+export function usePersonalObjectives(reloadKey = 0) {
+  const [objectives, setObjectives] = useState<PersonalObjective[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [innerReload, setInnerReload] = useState(0)
+  const mountedRef = useRef(true)
+
+  const reload = useCallback(() => {
+    setInnerReload((k) => k + 1)
+  }, [])
 
   useEffect(() => {
+    let ch: ReturnType<typeof supabase.channel> | null = null
     let mounted = true
 
     const load = async () => {
@@ -85,28 +47,26 @@ export function usePersonalObjectives() {
         .select('*')
         .order('priority', { ascending: false })
         .order('created_at', { ascending: false })
+
       if (!mounted) return
       if (error) {
         setError(error.message)
         setLoading(false)
         return
       }
-      const dbObjectives = (data ?? []).map(fromDb)
-      if (dbObjectives.length > 0) {
-        setObjectives(dbObjectives)
-        saveObjectivesToStorage(dbObjectives)
-      }
+      setObjectives((data ?? []).map(fromDb))
       setLoading(false)
     }
 
     load()
 
-    const ch = supabase
+    ch = supabase
       .channel('personal-objectives-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'personal_objectives' },
         (p) => {
+          if (!mountedRef.current) return
           if (p.eventType === 'INSERT') {
             setObjectives((prev) => [fromDb(p.new as DbObjective), ...prev])
           } else if (p.eventType === 'UPDATE') {
@@ -126,9 +86,10 @@ export function usePersonalObjectives() {
 
     return () => {
       mounted = false
-      supabase.removeChannel(ch)
+      mountedRef.current = false
+      if (ch) supabase.removeChannel(ch)
     }
-  }, [])
+  }, [reloadKey, innerReload])
 
   const addObjective = useCallback(
     async (o: Omit<PersonalObjective, 'id' | 'createdAt'>) => {
@@ -152,67 +113,88 @@ export function usePersonalObjectives() {
     if (error) setError(error.message)
   }, [])
 
-  const toggleTask = useCallback(async (objectiveId: string, taskId: string) => {
-    const { data, error } = await supabase
-      .from('personal_objectives')
-      .select('tasks')
-      .eq('id', objectiveId)
-      .single()
-    if (error) {
-      setError(error.message)
-      return
-    }
-    const next = (data?.tasks ?? []).map((t: GoalTask) =>
-      t.id === taskId ? { ...t, done: !t.done } : t
-    )
-    const { error: upErr } = await supabase
-      .from('personal_objectives')
-      .update({ tasks: next })
-      .eq('id', objectiveId)
-    if (!upErr) {
-      setObjectives((prev) => {
-        const updated = prev.map((o) =>
-          o.id === objectiveId ? { ...o, tasks: next } : o
+  const toggleTask = useCallback(
+    async (objectiveId: string, taskId: string) => {
+      setObjectives((prev) =>
+        prev.map((o) =>
+          o.id === objectiveId
+            ? {
+                ...o,
+                tasks: o.tasks.map((t) =>
+                  t.id === taskId ? { ...t, done: !t.done } : t
+                ),
+              }
+            : o
         )
-        saveObjectivesToStorage(updated)
-        return updated
-      })
-    }
-    if (upErr) setError(upErr.message)
-  }, [])
+      )
 
-  const addCheckin = useCallback(async (objectiveId: string, note: string) => {
-    const { data, error } = await supabase
-      .from('personal_objectives')
-      .select('checkins')
-      .eq('id', objectiveId)
-      .single()
-    if (error) {
-      setError(error.message)
-      return
-    }
-    const today = new Date().toISOString().slice(0, 10)
-    const next = [...(data?.checkins ?? []), { date: today, note }]
-    const { error: upErr } = await supabase
-      .from('personal_objectives')
-      .update({ checkins: next })
-      .eq('id', objectiveId)
-    if (!upErr) {
-      setObjectives((prev) => {
-        const updated = prev.map((o) =>
-          o.id === objectiveId ? { ...o, checkins: next } : o
-        )
-        saveObjectivesToStorage(updated)
-        return updated
-      })
-    }
-    if (upErr) setError(upErr.message)
-  }, [])
+      const { data, error: selErr } = await supabase
+        .from('personal_objectives')
+        .select('tasks')
+        .eq('id', objectiveId)
+        .single()
+      if (selErr) {
+        setError(selErr.message)
+        reload()
+        return
+      }
+      const next = (data?.tasks ?? []).map((t: GoalTask) =>
+        t.id === taskId ? { ...t, done: !t.done } : t
+      )
+      const { error: upErr } = await supabase
+        .from('personal_objectives')
+        .update({ tasks: next })
+        .eq('id', objectiveId)
+      if (upErr) {
+        setError(upErr.message)
+        reload()
+      }
+    },
+    [reload]
+  )
+
+  const addCheckin = useCallback(
+    async (objectiveId: string, note: string) => {
+      setObjectives((prev) =>
+        prev.map((o) => {
+          if (o.id !== objectiveId) return o
+          const today = new Date().toISOString().slice(0, 10)
+          return {
+            ...o,
+            checkins: [...o.checkins, { date: today, note }],
+          }
+        })
+      )
+
+      const { data, error: selErr } = await supabase
+        .from('personal_objectives')
+        .select('checkins')
+        .eq('id', objectiveId)
+        .single()
+      if (selErr) {
+        setError(selErr.message)
+        reload()
+        return
+      }
+      const today = new Date().toISOString().slice(0, 10)
+      const next = [...(data?.checkins ?? []), { date: today, note }]
+      const { error: upErr } = await supabase
+        .from('personal_objectives')
+        .update({ checkins: next })
+        .eq('id', objectiveId)
+      if (upErr) {
+        setError(upErr.message)
+        reload()
+      }
+    },
+    [reload]
+  )
 
   return {
     objectives,
     loading,
     error,
+    reload,
     addObjective,
     deleteObjective,
     toggleTask,
