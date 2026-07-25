@@ -86,6 +86,8 @@ async function migrateJournal(entries: any[]) {
 }
 
 async function createInitialData() {
+  // Primero, verificamos si ya existen datos para evitar duplicados.
+  // Nos basta con chequear una sola tabla principal.
   const { data: existingGoals } = await supabase.from('goals').select('*').limit(1)
   if (existingGoals && existingGoals.length > 0) return
 
@@ -410,7 +412,20 @@ async function createInitialData() {
   if (error) throw error
 }
 
-async function runMigration() {
+async function runMigrationAndCleanup() {
+  // 1. Chequear si Supabase ya tiene datos. Si es así, no hay nada que migrar.
+  const { data: existingGoals, error: checkError } = await supabase
+    .from('goals')
+    .select('id')
+    .limit(1)
+
+  if (checkError) throw checkError
+  if (existingGoals && existingGoals.length > 0) {
+    // Ya hay datos, marcamos la migración como hecha y limpiamos localStorage si es necesario.
+    localStorage.setItem(MIGRATION_FLAG, 'done')
+    return
+  }
+
   const legacy = readLegacyLocal()
   const hasLegacy =
     (legacy.goals && legacy.goals.length > 0) ||
@@ -418,15 +433,18 @@ async function runMigration() {
     (legacy.journal && legacy.journal.length > 0)
 
   if (hasLegacy) {
+    // 2. Si Supabase está vacío y hay datos legacy, los migramos.
     await Promise.all([
       migrateGoals(legacy.goals ?? []),
       migrateObjectives(legacy.personalObjectives ?? []),
       migrateJournal(legacy.journal ?? []),
     ])
   } else {
+    // 3. Si Supabase y localStorage están vacíos, creamos los datos iniciales.
     await createInitialData()
   }
 
+  // 4. Limpiamos las claves migradas de localStorage para no volver a leerlas.
   localStorage.setItem(MIGRATION_FLAG, 'done')
 
   const raw = localStorage.getItem(STORAGE_KEY)
@@ -441,9 +459,11 @@ async function runMigration() {
 
 export function useAppData() {
   const local = useLocalAppData()
-  const goalsHook = useGoals()
-  const objectivesHook = usePersonalObjectives()
-  const journalHook = useJournalEntries()
+  // Prevenimos la carga inicial de los hooks de datos.
+  // El orquestador se encargará de llamarlos.
+  const goalsHook = useGoals(false)
+  const objectivesHook = usePersonalObjectives(false)
+  const journalHook = useJournalEntries(false)
 
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -459,15 +479,20 @@ export function useAppData() {
         const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG) === 'done'
 
         if (!alreadyMigrated) {
-          await runMigration()
+          await runMigrationAndCleanup()
         }
 
         migrationDone.current = true
 
+        // Una vez asegurada la migración (o que no era necesaria),
+        // cargamos TODOS los datos desde Supabase.
         if (mounted) {
-          goalsHook.reload()
-          objectivesHook.reload()
-          journalHook.reload()
+          // Usamos Promise.all para cargar en paralelo.
+          await Promise.all([
+            goalsHook.reload(),
+            objectivesHook.reload(),
+            journalHook.reload(),
+          ])
         }
       } catch (e) {
         if (mounted) {

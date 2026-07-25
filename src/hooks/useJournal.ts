@@ -13,27 +13,6 @@ type DbJournal = {
   created_at: string
 }
 
-function getLegacyJournal(): JournalEntry[] {
-  try {
-    const raw = localStorage.getItem('jc_island_data')
-    if (!raw) return []
-    const parsed = JSON.parse(raw) as { journal?: any[] }
-    if (!Array.isArray(parsed?.journal)) return []
-    return parsed.journal.map((e: any) => ({
-      id: crypto.randomUUID(),
-      title: String(e.title || ''),
-      date: e.date || '',
-      location: e.location ?? '',
-      body: e.body ?? '',
-      photos: Array.isArray(e.photos) ? e.photos : [],
-      moodTags: Array.isArray(e.moodTags) ? e.moodTags : [],
-      createdAt: e.createdAt || new Date().toISOString(),
-    }))
-  } catch {
-    return []
-  }
-}
-
 const fromDb = (r: DbJournal): JournalEntry => ({
   id: r.id,
   title: r.title,
@@ -59,13 +38,8 @@ export function useJournalEntries(initialLoad = true) {
         setLoading(false)
         return
       }
-      const dbEntries = (data ?? []).map(fromDb)
-      if (dbEntries.length === 0) {
-        const legacy = getLegacyJournal()
-        setEntries(legacy)
-      } else {
-        setEntries(dbEntries)
-      }
+      setEntries((data ?? []).map(fromDb))
+      // No leemos de localStorage. Si Supabase está vacío, está vacío.
       setLoading(false)
     }
 

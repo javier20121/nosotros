@@ -28,51 +28,8 @@ const fromDb = (r: DbObjective): PersonalObjective => ({
   createdAt: r.created_at,
 })
 
-function loadObjectivesFromStorage(): PersonalObjective[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return getDefaultObjectives()
-    const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
-    if (!Array.isArray(parsed?.personalObjectives) || parsed.personalObjectives.length === 0) return getDefaultObjectives()
-    return parsed.personalObjectives.map((o: any) => ({
-      id: o.id || crypto.randomUUID(),
-      owner: o.owner || 'javi',
-      title: String(o.title || ''),
-      description: String(o.description || ''),
-      emoji: o.emoji || '🌱',
-      priority: o.priority ?? 0,
-      tasks: Array.isArray(o.tasks)
-        ? o.tasks.map((t: any) => ({
-            id: t.id || crypto.randomUUID(),
-            title: String(t.title || ''),
-            done: Boolean(t.done),
-          }))
-        : [],
-      checkins: Array.isArray(o.checkins) ? o.checkins : [],
-      createdAt: o.createdAt || new Date().toISOString(),
-    }))
-  } catch {
-    return getDefaultObjectives()
-  }
-}
-
-function getDefaultObjectives(): PersonalObjective[] {
-  return []
-}
-
-function saveObjectivesToStorage(objectives: PersonalObjective[]) {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    const data = raw ? JSON.parse(raw) : {}
-    data.personalObjectives = objectives
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch {
-    // ignore
-  }
-}
-
 export function usePersonalObjectives(initialLoad = true) {
-  const [objectives, setObjectives] = useState<PersonalObjective[]>(loadObjectivesFromStorage)
+  const [objectives, setObjectives] = useState<PersonalObjective[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -87,11 +44,8 @@ export function usePersonalObjectives(initialLoad = true) {
         setLoading(false)
         return
       }
-      const dbObjectives = (data ?? []).map(fromDb)
-      if (dbObjectives.length > 0) {
-        setObjectives(dbObjectives)
-        saveObjectivesToStorage(dbObjectives)
-      }
+      setObjectives((data ?? []).map(fromDb))
+      // No guardamos en localStorage, Supabase es la fuente de verdad.
       setLoading(false)
     }
 
@@ -170,13 +124,7 @@ export function usePersonalObjectives(initialLoad = true) {
       .update({ tasks: next })
       .eq('id', objectiveId)
     if (!upErr) {
-      setObjectives((prev) => {
-        const updated = prev.map((o) =>
-          o.id === objectiveId ? { ...o, tasks: next } : o
-        )
-        saveObjectivesToStorage(updated)
-        return updated
-      })
+      // El canal realtime se encargará de actualizar el estado.
     }
     if (upErr) setError(upErr.message)
   }, [])
@@ -198,13 +146,7 @@ export function usePersonalObjectives(initialLoad = true) {
       .update({ checkins: next })
       .eq('id', objectiveId)
     if (!upErr) {
-      setObjectives((prev) => {
-        const updated = prev.map((o) =>
-          o.id === objectiveId ? { ...o, checkins: next } : o
-        )
-        saveObjectivesToStorage(updated)
-        return updated
-      })
+      // El canal realtime se encargará de actualizar el estado.
     }
     if (upErr) setError(upErr.message)
   }, [])
