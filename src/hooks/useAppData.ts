@@ -27,28 +27,28 @@ function readLegacyLocal(): LegacyData {
 async function migrateGoals(goals: any[]) {
   if (!goals || goals.length === 0) return
   const rows = goals.map((g) => ({
-    id: crypto.randomUUID(),
+    id: g.id || crypto.randomUUID(),
     title: String(g.title || ''),
     description: String(g.description || ''),
     status: g.status || 'pending',
     photos: Array.isArray(g.photos) ? g.photos : [],
     tasks: Array.isArray(g.tasks)
       ? g.tasks.map((t: any) => ({
-          id: crypto.randomUUID(),
+          id: t.id || crypto.randomUUID(),
           title: String(t.title || ''),
           done: Boolean(t.done),
         }))
       : [],
     created_at: g.createdAt || new Date().toISOString(),
   }))
-  const { error } = await supabase.from('goals').insert(rows)
+  const { error } = await supabase.from('goals').upsert(rows, { onConflict: 'id' })
   if (error) throw error
 }
 
 async function migrateObjectives(objectives: any[]) {
   if (!objectives || objectives.length === 0) return
   const rows = objectives.map((o) => ({
-    id: crypto.randomUUID(),
+    id: o.id || crypto.randomUUID(),
     owner: o.owner || 'javi',
     title: String(o.title || ''),
     description: String(o.description || ''),
@@ -56,7 +56,7 @@ async function migrateObjectives(objectives: any[]) {
     priority: o.priority ?? 0,
     tasks: Array.isArray(o.tasks)
       ? o.tasks.map((t: any) => ({
-          id: crypto.randomUUID(),
+          id: t.id || crypto.randomUUID(),
           title: String(t.title || ''),
           done: Boolean(t.done),
         }))
@@ -64,14 +64,14 @@ async function migrateObjectives(objectives: any[]) {
     checkins: Array.isArray(o.checkins) ? o.checkins : [],
     created_at: o.createdAt || new Date().toISOString(),
   }))
-  const { error } = await supabase.from('personal_objectives').insert(rows)
+  const { error } = await supabase.from('personal_objectives').upsert(rows, { onConflict: 'id' })
   if (error) throw error
 }
 
 async function migrateJournal(entries: any[]) {
   if (!entries || entries.length === 0) return
   const rows = entries.map((e) => ({
-    id: crypto.randomUUID(),
+    id: e.id || crypto.randomUUID(),
     title: String(e.title || ''),
     date: e.date || '',
     location: e.location ?? '',
@@ -80,7 +80,7 @@ async function migrateJournal(entries: any[]) {
     mood_tags: Array.isArray(e.moodTags) ? e.moodTags : [],
     created_at: e.createdAt || new Date().toISOString(),
   }))
-  const { error } = await supabase.from('journal_entries').insert(rows)
+  const { error } = await supabase.from('journal_entries').upsert(rows, { onConflict: 'id' })
   if (error) throw error
 }
 
@@ -430,9 +430,9 @@ async function createInitialData() {
   ]
 
   const [
-    { data: existingGoals, error: goalsError },
-    { data: existingJournal, error: journalError },
-    { data: existingObjectives, error: objectivesError },
+    { count: goalsCount, error: goalsError },
+    { count: journalCount, error: journalError },
+    { count: objectivesCount, error: objectivesError },
   ] = await Promise.all([
     supabase.from('goals').select('id', { count: 'exact', head: true }),
     supabase.from('journal_entries').select('id', { count: 'exact', head: true }),
@@ -443,24 +443,22 @@ async function createInitialData() {
   if (journalError) throw journalError
   if (objectivesError) throw objectivesError
 
-  if (!existingGoals || existingGoals.length === 0) {
+  if (goalsCount === 0) {
     // We need to map the defaultGoals to what Supabase expects (snake_case)
     const goalsToInsert = defaultGoals.map(g => ({
       ...g,
       created_at: g.createdAt,
       // The 'createdAt' property is not in the DB, so we remove it.
-      // A cleaner way would be to define a separate type for insertion.
-      // For now, we create a new object without it.
     })).map(({ createdAt, ...rest }) => rest);
 
     const { error } = await supabase.from('goals').insert(goalsToInsert)
     if (error) throw error
   }
-  if (!existingJournal || existingJournal.length === 0) {
+  if (journalCount === 0) {
     const { error } = await supabase.from('journal_entries').insert(defaultJournal)
     if (error) throw error
   }
-  if (!existingObjectives || existingObjectives.length === 0) {
+  if (objectivesCount === 0) {
     const { error } = await supabase.from('personal_objectives').insert(defaultPersonalObjectives)
     if (error) throw error
   }
@@ -473,9 +471,9 @@ async function initializeDatabase() {
 
   // 1. Verificamos el estado de las tablas en Supabase.
   const [
-    { data: existingGoals, error: goalsError },
-    { data: existingObjectives, error: objectivesError },
-    { data: existingJournal, error: journalError },
+    { count: goalsCount, error: goalsError },
+    { count: objectivesCount, error: objectivesError },
+    { count: journalCount, error: journalError },
   ] = await Promise.all([
     supabase.from('goals').select('id', { count: 'exact', head: true }),
     supabase.from('personal_objectives').select('id', { count: 'exact', head: true }),
@@ -488,13 +486,13 @@ async function initializeDatabase() {
 
   // 2. Migramos los datos legacy solo si la tabla correspondiente en Supabase está vacía.
   const migrationPromises: Promise<any>[] = []
-  if (!existingGoals || existingGoals.length === 0) {
+  if (goalsCount === 0) {
     migrationPromises.push(migrateGoals(legacy.goals ?? []))
   }
-  if (!existingObjectives || existingObjectives.length === 0) {
+  if (objectivesCount === 0) {
     migrationPromises.push(migrateObjectives(legacy.personalObjectives ?? []))
   }
-  if (!existingJournal || existingJournal.length === 0) {
+  if (journalCount === 0) {
     migrationPromises.push(migrateJournal(legacy.journal ?? []))
   }
 
