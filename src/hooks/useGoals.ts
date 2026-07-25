@@ -22,6 +22,32 @@ const fromDb = (r: DbGoal): Goal => ({
   createdAt: r.created_at,
 })
 
+function getLegacyGoals(): Goal[] {
+  try {
+    const raw = localStorage.getItem('jc_island_data')
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as { goals?: any[] }
+    if (!Array.isArray(parsed?.goals)) return []
+    return parsed.goals.map((g: any) => ({
+      id: g.id || crypto.randomUUID(),
+      title: String(g.title || ''),
+      description: String(g.description || ''),
+      status: g.status || 'pending',
+      photos: Array.isArray(g.photos) ? g.photos : [],
+      tasks: Array.isArray(g.tasks)
+        ? g.tasks.map((t: any) => ({
+            id: t.id || crypto.randomUUID(),
+            title: String(t.title || ''),
+            done: Boolean(t.done),
+          }))
+        : [],
+      createdAt: g.createdAt || new Date().toISOString(),
+    }))
+  } catch {
+    return []
+  }
+}
+
 export function useGoals() {
   const [goals, setGoals] = useState<Goal[]>([])
   const [loading, setLoading] = useState(true)
@@ -41,7 +67,13 @@ export function useGoals() {
         setLoading(false)
         return
       }
-      setGoals((data ?? []).map(fromDb))
+      const dbGoals = (data ?? []).map(fromDb)
+      if (dbGoals.length === 0) {
+        const legacy = getLegacyGoals()
+        setGoals(legacy)
+      } else {
+        setGoals(dbGoals)
+      }
       setLoading(false)
     }
 

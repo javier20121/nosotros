@@ -26,6 +26,34 @@ const fromDb = (r: DbObjective): PersonalObjective => ({
   createdAt: r.created_at,
 })
 
+function getLegacyObjectives(): PersonalObjective[] {
+  try {
+    const raw = localStorage.getItem('jc_island_data')
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
+    if (!Array.isArray(parsed?.personalObjectives)) return []
+    return parsed.personalObjectives.map((o: any) => ({
+      id: o.id || crypto.randomUUID(),
+      owner: o.owner || 'javi',
+      title: String(o.title || ''),
+      description: String(o.description || ''),
+      emoji: o.emoji || '🌱',
+      priority: o.priority ?? 0,
+      tasks: Array.isArray(o.tasks)
+        ? o.tasks.map((t: any) => ({
+            id: t.id || crypto.randomUUID(),
+            title: String(t.title || ''),
+            done: Boolean(t.done),
+          }))
+        : [],
+      checkins: Array.isArray(o.checkins) ? o.checkins : [],
+      createdAt: o.createdAt || new Date().toISOString(),
+    }))
+  } catch {
+    return []
+  }
+}
+
 export function usePersonalObjectives() {
   const [objectives, setObjectives] = useState<PersonalObjective[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,7 +74,13 @@ export function usePersonalObjectives() {
         setLoading(false)
         return
       }
-      setObjectives((data ?? []).map(fromDb))
+      const dbObjectives = (data ?? []).map(fromDb)
+      if (dbObjectives.length === 0) {
+        const legacy = getLegacyObjectives()
+        setObjectives(legacy)
+      } else {
+        setObjectives(dbObjectives)
+      }
       setLoading(false)
     }
 
