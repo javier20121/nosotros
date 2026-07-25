@@ -540,7 +540,16 @@ export function useAppData() {
         }
       } catch (e) {
         if (mounted) {
-          setError(e instanceof Error ? e.message : String(e))
+          console.error('SUPABASE ERROR:', e)
+          if (e instanceof Error) {
+            setError(e.message)
+          } else if (typeof e === 'object' && e !== null && 'message' in e) {
+            const supabaseError = e as { message: string; details?: string; code?: string }
+            const errorMessage = `Error: ${supabaseError.message} (Code: ${supabaseError.code ?? 'N/A'}) | Details: ${supabaseError.details ?? 'No details'}`
+            setError(errorMessage)
+          } else {
+            setError(String(e))
+          }
         }
       }
     }
