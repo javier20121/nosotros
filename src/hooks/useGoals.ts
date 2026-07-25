@@ -2,8 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Goal, GoalStatus, GoalTask } from '@/types'
 
-const STORAGE_KEY = 'jc_island_data'
-
 type DbGoal = {
   id: string
   title: string

@@ -2,8 +2,6 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { PersonalObjective, GoalTask, ObjectiveCheckin } from '@/types'
 
-const STORAGE_KEY = 'jc_island_data'
-
 type DbObjective = {
   id: string
   owner: 'javi' | 'cami'
