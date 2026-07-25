@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { PersonalObjective, GoalTask, ObjectiveCheckin } from '@/types'
 
+const STORAGE_KEY = 'jc_island_data'
+
 type DbObjective = {
   id: string
   owner: 'javi' | 'cami'
@@ -26,14 +28,14 @@ const fromDb = (r: DbObjective): PersonalObjective => ({
   createdAt: r.created_at,
 })
 
-function getLegacyObjectives(): PersonalObjective[] {
+function loadObjectivesFromStorage(): PersonalObjective[] {
   try {
-    const raw = localStorage.getItem('jc_island_data')
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as { personalObjectives?: any[] }
     if (!Array.isArray(parsed?.personalObjectives)) return []
     return parsed.personalObjectives.map((o: any) => ({
-      id: crypto.randomUUID(),
+      id: o.id || crypto.randomUUID(),
       owner: o.owner || 'javi',
       title: String(o.title || ''),
       description: String(o.description || ''),
@@ -41,7 +43,7 @@ function getLegacyObjectives(): PersonalObjective[] {
       priority: o.priority ?? 0,
       tasks: Array.isArray(o.tasks)
         ? o.tasks.map((t: any) => ({
-            id: crypto.randomUUID(),
+            id: t.id || crypto.randomUUID(),
             title: String(t.title || ''),
             done: Boolean(t.done),
           }))
@@ -54,8 +56,19 @@ function getLegacyObjectives(): PersonalObjective[] {
   }
 }
 
+function saveObjectivesToStorage(objectives: PersonalObjective[]) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const data = raw ? JSON.parse(raw) : {}
+    data.personalObjectives = objectives
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // ignore
+  }
+}
+
 export function usePersonalObjectives() {
-  const [objectives, setObjectives] = useState<PersonalObjective[]>([])
+  const [objectives, setObjectives] = useState<PersonalObjective[]>(loadObjectivesFromStorage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -75,11 +88,9 @@ export function usePersonalObjectives() {
         return
       }
       const dbObjectives = (data ?? []).map(fromDb)
-      if (dbObjectives.length === 0) {
-        const legacy = getLegacyObjectives()
-        setObjectives(legacy)
-      } else {
+      if (dbObjectives.length > 0) {
         setObjectives(dbObjectives)
+        saveObjectivesToStorage(dbObjectives)
       }
       setLoading(false)
     }
@@ -154,6 +165,15 @@ export function usePersonalObjectives() {
       .from('personal_objectives')
       .update({ tasks: next })
       .eq('id', objectiveId)
+    if (!upErr) {
+      setObjectives((prev) => {
+        const updated = prev.map((o) =>
+          o.id === objectiveId ? { ...o, tasks: next } : o
+        )
+        saveObjectivesToStorage(updated)
+        return updated
+      })
+    }
     if (upErr) setError(upErr.message)
   }, [])
 
@@ -173,6 +193,15 @@ export function usePersonalObjectives() {
       .from('personal_objectives')
       .update({ checkins: next })
       .eq('id', objectiveId)
+    if (!upErr) {
+      setObjectives((prev) => {
+        const updated = prev.map((o) =>
+          o.id === objectiveId ? { ...o, checkins: next } : o
+        )
+        saveObjectivesToStorage(updated)
+        return updated
+      })
+    }
     if (upErr) setError(upErr.message)
   }, [])
 
