@@ -2,6 +2,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Goal, GoalStatus, GoalTask } from '@/types'
 
+const STORAGE_KEY = 'jc_island_data'
+
 type DbGoal = {
   id: string
   title: string
@@ -22,21 +24,21 @@ const fromDb = (r: DbGoal): Goal => ({
   createdAt: r.created_at,
 })
 
-function getLegacyGoals(): Goal[] {
+function loadGoalsFromStorage(): Goal[] {
   try {
-    const raw = localStorage.getItem('jc_island_data')
+    const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw) as { goals?: any[] }
     if (!Array.isArray(parsed?.goals)) return []
     return parsed.goals.map((g: any) => ({
-      id: crypto.randomUUID(),
+      id: g.id || crypto.randomUUID(),
       title: String(g.title || ''),
       description: String(g.description || ''),
       status: g.status || 'pending',
       photos: Array.isArray(g.photos) ? g.photos : [],
       tasks: Array.isArray(g.tasks)
         ? g.tasks.map((t: any) => ({
-            id: crypto.randomUUID(),
+            id: t.id || crypto.randomUUID(),
             title: String(t.title || ''),
             done: Boolean(t.done),
           }))
@@ -48,8 +50,19 @@ function getLegacyGoals(): Goal[] {
   }
 }
 
+function saveGoalsToStorage(goals: Goal[]) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    const data = raw ? JSON.parse(raw) : {}
+    data.goals = goals
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+  } catch {
+    // ignore
+  }
+}
+
 export function useGoals() {
-  const [goals, setGoals] = useState<Goal[]>([])
+  const [goals, setGoals] = useState<Goal[]>(loadGoalsFromStorage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -68,11 +81,9 @@ export function useGoals() {
         return
       }
       const dbGoals = (data ?? []).map(fromDb)
-      if (dbGoals.length === 0) {
-        const legacy = getLegacyGoals()
-        setGoals(legacy)
-      } else {
+      if (dbGoals.length > 0) {
         setGoals(dbGoals)
+        saveGoalsToStorage(dbGoals)
       }
       setLoading(false)
     }
@@ -127,6 +138,13 @@ export function useGoals() {
     if (patch.tasks !== undefined) row.tasks = patch.tasks
 
     const { error } = await supabase.from('goals').update(row).eq('id', id)
+    if (!error) {
+      setGoals((prev) => {
+        const next = prev.map((g) => (g.id === id ? { ...g, ...patch } : g))
+        saveGoalsToStorage(next)
+        return next
+      })
+    }
     if (error) setError(error.message)
   }, [])
 
@@ -135,7 +153,6 @@ export function useGoals() {
     if (error) setError(error.message)
   }, [])
 
-  // Helpers de alto nivel (los usa useAppData con la firma anterior)
   const addPhoto = useCallback(
     async (goalId: string, photoSrc: string) => {
       const current = await supabase.from('goals').select('photos').eq('id', goalId).single()
@@ -145,6 +162,13 @@ export function useGoals() {
       }
       const next = [...(current.data?.photos ?? []), photoSrc]
       const { error } = await supabase.from('goals').update({ photos: next }).eq('id', goalId)
+      if (!error) {
+        setGoals((prev) => {
+          const updated = prev.map((g) => (g.id === goalId ? { ...g, photos: next } : g))
+          saveGoalsToStorage(updated)
+          return updated
+        })
+      }
       if (error) setError(error.message)
     },
     []
@@ -158,6 +182,13 @@ export function useGoals() {
     }
     const next = (current.data?.photos ?? []).filter((_: string, i: number) => i !== photoIndex)
     const { error } = await supabase.from('goals').update({ photos: next }).eq('id', goalId)
+    if (!error) {
+      setGoals((prev) => {
+        const updated = prev.map((g) => (g.id === goalId ? { ...g, photos: next } : g))
+        saveGoalsToStorage(updated)
+        return updated
+      })
+    }
     if (error) setError(error.message)
   }, [])
 
