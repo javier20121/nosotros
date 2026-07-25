@@ -380,20 +380,16 @@ function saveGoalsToStorage(goals: Goal[]) {
   }
 }
 
-export function useGoals() {
+export function useGoals(initialLoad = true) {
   const [goals, setGoals] = useState<Goal[]>(loadGoalsFromStorage)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let mounted = true
 
     const load = async () => {
       const { data, error } = await supabase
         .from('goals')
         .select('*')
         .order('created_at', { ascending: false })
-      if (!mounted) return
       if (error) {
         setError(error.message)
         setLoading(false)
@@ -407,7 +403,14 @@ export function useGoals() {
       setLoading(false)
     }
 
-    load()
+  const reload = useCallback(load, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    if (initialLoad) {
+      load()
+    }
 
     const ch = supabase
       .channel('goals-realtime')
@@ -434,7 +437,7 @@ export function useGoals() {
       mounted = false
       supabase.removeChannel(ch)
     }
-  }, [])
+  }, [initialLoad])
 
   const addGoal = useCallback(async (g: Omit<Goal, 'id' | 'createdAt'>) => {
     const { error } = await supabase.from('goals').insert({
@@ -511,5 +514,5 @@ export function useGoals() {
     if (error) setError(error.message)
   }, [])
 
-  return { goals, loading, error, addGoal, updateGoal, deleteGoal, addPhoto, deletePhoto }
+  return { goals, loading, error, addGoal, updateGoal, deleteGoal, addPhoto, deletePhoto, reload }
 }

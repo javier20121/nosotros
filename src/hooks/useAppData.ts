@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useGoals } from './useGoals'
 import { usePersonalObjectives } from './usePersonalObjectives'
 import { useJournalEntries } from './useJournal'
 import { useLocalAppData } from './useLocalAppData'
-import type { AppData, Goal, PersonalObjective, JournalEntry } from '@/types'
+import type { AppData, Goal } from '@/types'
 
 const STORAGE_KEY = 'jc_island_data'
 const MIGRATION_FLAG = 'jc_migration_done'
@@ -441,9 +441,9 @@ async function runMigration() {
 
 export function useAppData() {
   const local = useLocalAppData()
-  const goalsHook = useGoals(0)
-  const objectivesHook = usePersonalObjectives(0)
-  const journalHook = useJournalEntries(0)
+  const goalsHook = useGoals()
+  const objectivesHook = usePersonalObjectives()
+  const journalHook = useJournalEntries()
 
   const [ready, setReady] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -464,11 +464,11 @@ export function useAppData() {
 
         migrationDone.current = true
 
-        if (!mounted) return
-
-        goalsHook.reload()
-        objectivesHook.reload()
-        journalHook.reload()
+        if (mounted) {
+          goalsHook.reload()
+          objectivesHook.reload()
+          journalHook.reload()
+        }
       } catch (e) {
         if (mounted) {
           setError(e instanceof Error ? e.message : String(e))
