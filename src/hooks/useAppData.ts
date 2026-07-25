@@ -429,36 +429,31 @@ async function createInitialData() {
     },
   ]
 
-  // Verificamos cada tabla de forma independiente antes de insertar datos iniciales.
   const [
     { data: existingGoals, error: goalsError },
     { data: existingJournal, error: journalError },
     { data: existingObjectives, error: objectivesError },
   ] = await Promise.all([
-    supabase.from('goals').select('id').limit(1),
-    supabase.from('journal_entries').select('id').limit(1),
-    supabase.from('personal_objectives').select('id').limit(1),
+    supabase.from('goals').select('id', { count: 'exact', head: true }),
+    supabase.from('journal_entries').select('id', { count: 'exact', head: true }),
+    supabase.from('personal_objectives').select('id', { count: 'exact', head: true }),
   ])
 
   if (goalsError) throw goalsError
   if (journalError) throw journalError
   if (objectivesError) throw objectivesError
 
-  const inserts: Promise<any>[] = []
   if (!existingGoals || existingGoals.length === 0) {
-    inserts.push(supabase.from('goals').insert(defaultGoals))
+    const { error } = await supabase.from('goals').insert(defaultGoals)
+    if (error) throw error
   }
   if (!existingJournal || existingJournal.length === 0) {
-    inserts.push(supabase.from('journal_entries').insert(defaultJournal))
+    const { error } = await supabase.from('journal_entries').insert(defaultJournal)
+    if (error) throw error
   }
   if (!existingObjectives || existingObjectives.length === 0) {
-    inserts.push(supabase.from('personal_objectives').insert(defaultPersonalObjectives))
-  }
-
-  if (inserts.length > 0) {
-    const results = await Promise.all(inserts)
-    const firstError = results.find((res) => res.error)
-    if (firstError) throw firstError.error
+    const { error } = await supabase.from('personal_objectives').insert(defaultPersonalObjectives)
+    if (error) throw error
   }
 }
 
@@ -473,9 +468,9 @@ async function initializeDatabase() {
     { data: existingObjectives, error: objectivesError },
     { data: existingJournal, error: journalError },
   ] = await Promise.all([
-    supabase.from('goals').select('id').limit(1),
-    supabase.from('personal_objectives').select('id').limit(1),
-    supabase.from('journal_entries').select('id').limit(1),
+    supabase.from('goals').select('id', { count: 'exact', head: true }),
+    supabase.from('personal_objectives').select('id', { count: 'exact', head: true }),
+    supabase.from('journal_entries').select('id', { count: 'exact', head: true }),
   ])
 
   if (goalsError) throw goalsError
