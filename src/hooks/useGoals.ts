@@ -406,8 +406,6 @@ export function useGoals(initialLoad = true) {
   const reload = useCallback(load, [])
 
   useEffect(() => {
-    let mounted = true
-
     if (initialLoad) {
       load()
     }
@@ -434,7 +432,6 @@ export function useGoals(initialLoad = true) {
       .subscribe()
 
     return () => {
-      mounted = false
       supabase.removeChannel(ch)
     }
   }, [initialLoad])

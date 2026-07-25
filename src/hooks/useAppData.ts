@@ -419,9 +419,9 @@ async function runMigration() {
 
   if (hasLegacy) {
     await Promise.all([
-      migrateGoals(legacy.goals),
-      migrateObjectives(legacy.personalObjectives),
-      migrateJournal(legacy.journal),
+      migrateGoals(legacy.goals ?? []),
+      migrateObjectives(legacy.personalObjectives ?? []),
+      migrateJournal(legacy.journal ?? []),
     ])
   } else {
     await createInitialData()

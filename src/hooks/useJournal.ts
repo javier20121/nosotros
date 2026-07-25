@@ -72,8 +72,6 @@ export function useJournalEntries(initialLoad = true) {
   const reload = useCallback(load, [])
 
   useEffect(() => {
-    let mounted = true
-
     if (initialLoad) {
       load()
     }
@@ -102,7 +100,6 @@ export function useJournalEntries(initialLoad = true) {
       .subscribe()
 
     return () => {
-      mounted = false
       supabase.removeChannel(ch)
     }
   }, [initialLoad])

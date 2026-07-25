@@ -98,8 +98,6 @@ export function usePersonalObjectives(initialLoad = true) {
   const reload = useCallback(load, [])
 
   useEffect(() => {
-    let mounted = true
-
     if (initialLoad) {
       load()
     }
@@ -128,7 +126,6 @@ export function usePersonalObjectives(initialLoad = true) {
       .subscribe()
 
     return () => {
-      mounted = false
       supabase.removeChannel(ch)
     }
   }, [initialLoad])
