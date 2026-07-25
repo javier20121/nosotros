@@ -700,21 +700,16 @@ async function initializeDatabase() {
   if (objectivesError) throw objectivesError
   if (journalError) throw journalError
 
-  // 2. Migramos los datos legacy solo si la tabla correspondiente en Supabase está vacía.
-  const migrationPromises: Promise<any>[] = []
   if (goalsCount === 0) {
-    migrationPromises.push(migrateGoals(legacy.goals ?? []))
+     await migrateGoals(legacy.goals ?? [])
   }
   if (objectivesCount === 0 && legacy.personalObjectives && legacy.personalObjectives.length > 0) {
     console.log(`Found ${legacy.personalObjectives.length} personal objectives in localStorage. Migrating...`)
-    migrationPromises.push(migrateObjectives(legacy.personalObjectives ?? []))
+    await migrateObjectives(legacy.personalObjectives ?? [])
   }
   if (journalCount === 0) {
-    migrationPromises.push(migrateJournal(legacy.journal ?? []))
+     await migrateJournal(legacy.journal ?? [])
   }
-
-  await Promise.all(migrationPromises)
-
   // 3. Si después de la migración alguna tabla sigue vacía, creamos los datos iniciales.
   await createInitialData()
 
