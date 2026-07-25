@@ -85,7 +85,6 @@ export function usePersonalObjectives(initialLoad = true) {
   const addObjective = useCallback(
     async (o: Omit<PersonalObjective, 'id' | 'createdAt'>) => {
       const { error } = await supabase.from('personal_objectives').insert({
-        id: crypto.randomUUID(),
         owner: o.owner,
         title: o.title,
         description: o.description,
@@ -93,6 +92,7 @@ export function usePersonalObjectives(initialLoad = true) {
         priority: o.priority,
         tasks: o.tasks,
         checkins: o.checkins,
+        created_at: new Date().toISOString(),
       })
       if (error) setError(error.message)
     },

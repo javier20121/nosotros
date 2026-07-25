@@ -542,13 +542,13 @@ export function useAppData() {
         if (mounted) {
           console.error('SUPABASE ERROR:', e)
           if (e instanceof Error) {
-            setError(e.message)
+            setError(`Error: ${e.message}`)
           } else if (typeof e === 'object' && e !== null && 'message' in e) {
             const supabaseError = e as { message: string; details?: string; code?: string }
-            const errorMessage = `Error: ${supabaseError.message} (Code: ${supabaseError.code ?? 'N/A'}) | Details: ${supabaseError.details ?? 'No details'}`
+            const errorMessage = `Error de Supabase: ${supabaseError.message} (Code: ${supabaseError.code ?? 'N/A'})`
             setError(errorMessage)
           } else {
-            setError(String(e))
+            setError('Ocurrió un error inesperado.')
           }
         }
       }

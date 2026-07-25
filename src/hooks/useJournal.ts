@@ -80,13 +80,13 @@ export function useJournalEntries(initialLoad = true) {
 
   const addEntry = useCallback(async (entry: Omit<JournalEntry, 'id'>) => {
     const { error } = await supabase.from('journal_entries').insert({
-      id: crypto.randomUUID(),
       title: entry.title,
       date: entry.date,
       location: entry.location,
       body: entry.body,
       photos: entry.photos,
       mood_tags: entry.moodTags,
+      created_at: new Date().toISOString(),
     })
     if (error) setError(error.message)
   }, [])
