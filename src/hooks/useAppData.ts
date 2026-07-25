@@ -7,7 +7,6 @@ import { useLocalAppData } from './useLocalAppData'
 import type { AppData, Goal } from '@/types'
 
 const STORAGE_KEY = 'jc_island_data'
-const MIGRATION_FLAG = 'jc_migration_done'
 
 type LegacyData = {
   goals?: any[]
@@ -86,14 +85,6 @@ async function migrateJournal(entries: any[]) {
 }
 
 async function createInitialData() {
-  // Primero, verificamos si ya existen datos para evitar duplicados.
-  // Nos basta con chequear una sola tabla principal.
-  const { data: existingGoals } = await supabase.from('goals').select('*').limit(1)
-  if (existingGoals && existingGoals.length > 0) return
-
-  // Si no hay goals, asumimos que el resto de tablas también están vacías.
-  // Creamos los datos iniciales para todas las tablas.
-
   const defaultJournal = [
     {
       id: crypto.randomUUID(),
@@ -438,10 +429,6 @@ async function createInitialData() {
     },
   ]
 
-  const results = await Promise.all([
-    supabase.from('goals').insert(defaultGoals),
-    supabase.from('journal_entries').insert(defaultJournal),
-    supabase.from('personal_objectives').insert(defaultPersonalObjectives),
   // Verificamos cada tabla de forma independiente antes de insertar datos iniciales.
   const [
     { data: existingGoals, error: goalsError },
@@ -453,19 +440,10 @@ async function createInitialData() {
     supabase.from('personal_objectives').select('id').limit(1),
   ])
 
-  const firstError = results.find((res) => res.error)
-  if (firstError) throw firstError.error
-}
   if (goalsError) throw goalsError
   if (journalError) throw journalError
   if (objectivesError) throw objectivesError
 
-async function runMigrationAndCleanup() {
-  // Paso 1: Chequear si la base de datos ya tiene datos. Esta es nuestra única fuente de verdad.
-  const { data: existingGoals, error: checkError } = await supabase
-    .from('goals')
-    .select('id')
-    .limit(1)
   const inserts: Promise<any>[] = []
   if (!existingGoals || existingGoals.length === 0) {
     inserts.push(supabase.from('goals').insert(defaultGoals))
@@ -477,12 +455,6 @@ async function runMigrationAndCleanup() {
     inserts.push(supabase.from('personal_objectives').insert(defaultPersonalObjectives))
   }
 
-  if (checkError) throw checkError
-  if (existingGoals && existingGoals.length > 0) {
-    // Ya hay datos, no hay nada que migrar.
-    // Marcamos la bandera local para no volver a chequear en esta sesión.
-    localStorage.setItem(MIGRATION_FLAG, 'done')
-    return
   if (inserts.length > 0) {
     const results = await Promise.all(inserts)
     const firstError = results.find((res) => res.error)
@@ -494,21 +466,7 @@ async function initializeDatabase() {
   // Esta función es idempotente. Se puede ejecutar en cada inicio sin problemas.
 
   const legacy = readLegacyLocal()
-  const hasLegacy =
-    (legacy.goals && legacy.goals.length > 0) ||
-    (legacy.personalObjectives && legacy.personalObjectives.length > 0) ||
-    (legacy.journal && legacy.journal.length > 0)
 
-  if (hasLegacy) {
-    // Paso 2: Si Supabase está vacío y hay datos legacy, los migramos.
-    await Promise.all([
-      migrateGoals(legacy.goals ?? []),
-      migrateObjectives(legacy.personalObjectives ?? []),
-      migrateJournal(legacy.journal ?? []),
-    ])
-  } else {
-    // Paso 3: Si Supabase y localStorage están vacíos, creamos los datos iniciales.
-    await createInitialData()
   // 1. Verificamos el estado de las tablas en Supabase.
   const [
     { data: existingGoals, error: goalsError },
@@ -536,8 +494,6 @@ async function initializeDatabase() {
     migrationPromises.push(migrateJournal(legacy.journal ?? []))
   }
 
-  // Paso 4: Marcamos la migración como completa y limpiamos las claves migradas de localStorage.
-  localStorage.setItem(MIGRATION_FLAG, 'done')
   await Promise.all(migrationPromises)
 
   // 3. Si después de la migración alguna tabla sigue vacía, creamos los datos iniciales.
@@ -574,13 +530,6 @@ export function useAppData() {
 
       // Este bloque se ejecuta UNA SOLA VEZ por carga de la aplicación.
       try {
-        const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG) === 'done'
-
-        if (!alreadyMigrated) {
-          // La función `runMigrationAndCleanup` ahora es idempotente y segura para multi-dispositivo.
-          await runMigrationAndCleanup()
-        }
-
         // La función `initializeDatabase` es segura para ejecutarse en cada inicio.
         await initializeDatabase()
         migrationDone.current = true
