@@ -126,7 +126,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Sacar fotos del proceso', done: false },
         { id: crypto.randomUUID(), title: 'Calificar el resultado del 1 al 10', done: false },
       ],
-      createdAt: '2026-06-13T10:00:00',
+      created_at: '2026-06-13T10:00:00',
     },
     {
       id: crypto.randomUUID(),
@@ -140,7 +140,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Terminarlos', done: false },
         { id: crypto.randomUUID(), title: 'Sacar una foto del resultado', done: false },
       ],
-      createdAt: '2026-06-13T10:10:00',
+      created_at: '2026-06-13T10:10:00',
     },
     {
       id: crypto.randomUUID(),
@@ -154,7 +154,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Llevar mate', done: false },
         { id: crypto.randomUUID(), title: 'Sacarnos una foto juntos', done: false },
       ],
-      createdAt: '2026-06-13T10:20:00',
+      created_at: '2026-06-13T10:20:00',
     },
     {
       id: crypto.randomUUID(),
@@ -169,7 +169,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Tomar fotos', done: false },
         { id: crypto.randomUUID(), title: 'Ver el atardecer', done: false },
       ],
-      createdAt: '2026-06-13T10:30:00',
+      created_at: '2026-06-13T10:30:00',
     },
     {
       id: crypto.randomUUID(),
@@ -183,7 +183,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Practicar juntos', done: false },
         { id: crypto.randomUUID(), title: 'Grabar el resultado', done: false },
       ],
-      createdAt: '2026-06-13T10:40:00',
+      created_at: '2026-06-13T10:40:00',
     },
     {
       id: crypto.randomUUID(),
@@ -197,7 +197,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Levantarse temprano', done: false },
         { id: crypto.randomUUID(), title: 'Sacar una foto del amanecer', done: false },
       ],
-      createdAt: '2026-06-13T10:50:00',
+      created_at: '2026-06-13T10:50:00',
     },
     {
       id: crypto.randomUUID(),
@@ -211,7 +211,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Hacer una playlist', done: false },
         { id: crypto.randomUUID(), title: 'Ver quién aguanta más despierto', done: false },
       ],
-      createdAt: '2026-06-13T11:00:00',
+      created_at: '2026-06-13T11:00:00',
     },
     {
       id: crypto.randomUUID(),
@@ -225,7 +225,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Organizar fechas', done: false },
         { id: crypto.randomUUID(), title: 'Puntuar cada película', done: false },
       ],
-      createdAt: '2026-06-13T11:10:00',
+      created_at: '2026-06-13T11:10:00',
     },
     {
       id: crypto.randomUUID(),
@@ -240,7 +240,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Ver el amanecer', done: false },
         { id: crypto.randomUUID(), title: 'Sacar fotos nocturnas', done: false },
       ],
-      createdAt: '2026-06-13T11:20:00',
+      created_at: '2026-06-13T11:20:00',
     },
     {
       id: crypto.randomUUID(),
@@ -254,7 +254,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Escuchar la lluvia', done: false },
         { id: crypto.randomUUID(), title: 'Crear un recuerdo', done: false },
       ],
-      createdAt: '2026-06-13T11:30:00',
+      created_at: '2026-06-13T11:30:00',
     },
     {
       id: crypto.randomUUID(),
@@ -268,7 +268,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Probar una receta nueva', done: false },
         { id: crypto.randomUUID(), title: 'Elegir el mejor taco', done: false },
       ],
-      createdAt: '2026-06-13T11:40:00',
+      created_at: '2026-06-13T11:40:00',
     },
     {
       id: crypto.randomUUID(),
@@ -282,7 +282,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Elegir personaje favorito', done: false },
         { id: crypto.randomUUID(), title: 'Terminar todas las temporadas', done: false },
       ],
-      createdAt: '2026-06-13T11:50:00',
+      created_at: '2026-06-13T11:50:00',
     },
     {
       id: crypto.randomUUID(),
@@ -296,7 +296,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Llevar marcador', done: false },
         { id: crypto.randomUUID(), title: 'Coronar al campeón', done: false },
       ],
-      createdAt: '2026-06-13T12:00:00',
+      created_at: '2026-06-13T12:00:00',
     },
     {
       id: crypto.randomUUID(),
@@ -310,7 +310,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Reservar fecha', done: false },
         { id: crypto.randomUUID(), title: 'Grabar la experiencia', done: false },
       ],
-      createdAt: '2026-06-13T12:10:00',
+      created_at: '2026-06-13T12:10:00',
     },
     {
       id: crypto.randomUUID(),
@@ -324,7 +324,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Encontrar la combinación perfecta', done: false },
         { id: crypto.randomUUID(), title: 'Sacar una foto', done: false },
       ],
-      createdAt: '2026-06-13T12:20:00',
+      created_at: '2026-06-13T12:20:00',
     },
     {
       id: crypto.randomUUID(),
@@ -339,7 +339,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Elegir favoritas', done: false },
         { id: crypto.randomUUID(), title: 'Crear álbum', done: false },
       ],
-      createdAt: '2026-06-13T12:30:00',
+      created_at: '2026-06-13T12:30:00',
     },
     {
       id: crypto.randomUUID(),
@@ -353,7 +353,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Comentar capítulos', done: false },
         { id: crypto.randomUUID(), title: 'Terminarlo juntos', done: false },
       ],
-      createdAt: '2026-06-13T12:40:00',
+      created_at: '2026-06-13T12:40:00',
     },
     {
       id: crypto.randomUUID(),
@@ -367,7 +367,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Celebrar avances', done: false },
         { id: crypto.randomUUID(), title: 'Mantener constancia', done: false },
       ],
-      createdAt: '2026-06-13T12:50:00',
+      created_at: '2026-06-13T12:50:00',
     },
     {
       id: crypto.randomUUID(),
@@ -381,7 +381,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Hacer seguimiento semanal', done: false },
         { id: crypto.randomUUID(), title: 'Cumplir un mes completo', done: false },
       ],
-      createdAt: '2026-06-13T13:00:00',
+      created_at: '2026-06-13T13:00:00',
     },
     {
       id: crypto.randomUUID(),
@@ -395,7 +395,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Compartir pensamientos', done: false },
         { id: crypto.randomUUID(), title: 'Registrar reflexiones', done: false },
       ],
-      createdAt: '2026-06-13T13:10:00',
+      created_at: '2026-06-13T13:10:00',
     },
     {
       id: crypto.randomUUID(),
@@ -409,7 +409,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Orar juntos', done: false },
         { id: crypto.randomUUID(), title: 'Mantener una racha de 30 días', done: false },
       ],
-      createdAt: '2026-06-13T13:20:00',
+      created_at: '2026-06-13T13:20:00',
     },
     {
       id: crypto.randomUUID(),
@@ -425,7 +425,7 @@ async function createInitialData() {
         { id: crypto.randomUUID(), title: 'Planear el futuro juntos', done: false },
         { id: crypto.randomUUID(), title: 'Dar el paso cuando llegue el momento correcto', done: false },
       ],
-      createdAt: '2026-06-13T13:30:00',
+      created_at: '2026-06-13T13:30:00',
     },
   ]
 
