@@ -91,6 +91,36 @@ async function createInitialData() {
   const { data: existingGoals } = await supabase.from('goals').select('*').limit(1)
   if (existingGoals && existingGoals.length > 0) return
 
+  // Si no hay goals, asumimos que el resto de tablas también están vacías.
+  // Creamos los datos iniciales para todas las tablas.
+
+  const defaultJournal = [
+    {
+      id: crypto.randomUUID(),
+      title: 'Nuestro finde en Villa de Leyva',
+      date: '2023-09-18',
+      location: 'Villa de Leyva, Boyacá',
+      body: 'Llegamos el viernes por la tarde y la luz dorada del atardecer nos recibió como una bendición. Caminamos por las calles empedradas, tomamos chocolate caliente en la plaza y nos reímos hasta que nos dolió la panza. Esos son los momentos que guardo en el corazón.',
+      photos: [],
+      mood_tags: ['Aventura', 'Romance', 'Chocolate'],
+      created_at: new Date().toISOString(),
+    },
+    {
+      id: crypto.randomUUID(),
+      title: 'El día que Stitch aprendió a sentarse',
+      date: '2024-01-20',
+      location: 'Casa, Bogotá',
+      body: 'Después de tres semanas de intentarlo, Stitch finalmente sentó su trasero peludo en comando! Celebramos con premios y una sesión de fotos que duró media hora. Es increíble cómo las pequeñas cosas se sienten tan grandes cuando las compartes con alguien especial.',
+      photos: [],
+      mood_tags: ['Stitch', 'Felicidad', 'Hogar'],
+      created_at: new Date().toISOString(),
+    },
+  ]
+
+  // No hay objetivos personales por defecto, pero la tabla debe existir.
+  // Dejamos esto como ejemplo si se quisieran agregar en el futuro.
+  const defaultPersonalObjectives: any[] = []
+
   const defaultGoals: Goal[] = [
     {
       id: crypto.randomUUID(),
@@ -408,23 +438,60 @@ async function createInitialData() {
     },
   ]
 
-  const { error } = await supabase.from('goals').insert(defaultGoals)
-  if (error) throw error
+  const results = await Promise.all([
+    supabase.from('goals').insert(defaultGoals),
+    supabase.from('journal_entries').insert(defaultJournal),
+    supabase.from('personal_objectives').insert(defaultPersonalObjectives),
+  // Verificamos cada tabla de forma independiente antes de insertar datos iniciales.
+  const [
+    { data: existingGoals, error: goalsError },
+    { data: existingJournal, error: journalError },
+    { data: existingObjectives, error: objectivesError },
+  ] = await Promise.all([
+    supabase.from('goals').select('id').limit(1),
+    supabase.from('journal_entries').select('id').limit(1),
+    supabase.from('personal_objectives').select('id').limit(1),
+  ])
+
+  const firstError = results.find((res) => res.error)
+  if (firstError) throw firstError.error
 }
+  if (goalsError) throw goalsError
+  if (journalError) throw journalError
+  if (objectivesError) throw objectivesError
 
 async function runMigrationAndCleanup() {
-  // 1. Chequear si Supabase ya tiene datos. Si es así, no hay nada que migrar.
+  // Paso 1: Chequear si la base de datos ya tiene datos. Esta es nuestra única fuente de verdad.
   const { data: existingGoals, error: checkError } = await supabase
     .from('goals')
     .select('id')
     .limit(1)
+  const inserts: Promise<any>[] = []
+  if (!existingGoals || existingGoals.length === 0) {
+    inserts.push(supabase.from('goals').insert(defaultGoals))
+  }
+  if (!existingJournal || existingJournal.length === 0) {
+    inserts.push(supabase.from('journal_entries').insert(defaultJournal))
+  }
+  if (!existingObjectives || existingObjectives.length === 0) {
+    inserts.push(supabase.from('personal_objectives').insert(defaultPersonalObjectives))
+  }
 
   if (checkError) throw checkError
   if (existingGoals && existingGoals.length > 0) {
-    // Ya hay datos, marcamos la migración como hecha y limpiamos localStorage si es necesario.
+    // Ya hay datos, no hay nada que migrar.
+    // Marcamos la bandera local para no volver a chequear en esta sesión.
     localStorage.setItem(MIGRATION_FLAG, 'done')
     return
+  if (inserts.length > 0) {
+    const results = await Promise.all(inserts)
+    const firstError = results.find((res) => res.error)
+    if (firstError) throw firstError.error
   }
+}
+
+async function initializeDatabase() {
+  // Esta función es idempotente. Se puede ejecutar en cada inicio sin problemas.
 
   const legacy = readLegacyLocal()
   const hasLegacy =
@@ -433,20 +500,50 @@ async function runMigrationAndCleanup() {
     (legacy.journal && legacy.journal.length > 0)
 
   if (hasLegacy) {
-    // 2. Si Supabase está vacío y hay datos legacy, los migramos.
+    // Paso 2: Si Supabase está vacío y hay datos legacy, los migramos.
     await Promise.all([
       migrateGoals(legacy.goals ?? []),
       migrateObjectives(legacy.personalObjectives ?? []),
       migrateJournal(legacy.journal ?? []),
     ])
   } else {
-    // 3. Si Supabase y localStorage están vacíos, creamos los datos iniciales.
+    // Paso 3: Si Supabase y localStorage están vacíos, creamos los datos iniciales.
     await createInitialData()
+  // 1. Verificamos el estado de las tablas en Supabase.
+  const [
+    { data: existingGoals, error: goalsError },
+    { data: existingObjectives, error: objectivesError },
+    { data: existingJournal, error: journalError },
+  ] = await Promise.all([
+    supabase.from('goals').select('id').limit(1),
+    supabase.from('personal_objectives').select('id').limit(1),
+    supabase.from('journal_entries').select('id').limit(1),
+  ])
+
+  if (goalsError) throw goalsError
+  if (objectivesError) throw objectivesError
+  if (journalError) throw journalError
+
+  // 2. Migramos los datos legacy solo si la tabla correspondiente en Supabase está vacía.
+  const migrationPromises: Promise<any>[] = []
+  if (!existingGoals || existingGoals.length === 0) {
+    migrationPromises.push(migrateGoals(legacy.goals ?? []))
+  }
+  if (!existingObjectives || existingObjectives.length === 0) {
+    migrationPromises.push(migrateObjectives(legacy.personalObjectives ?? []))
+  }
+  if (!existingJournal || existingJournal.length === 0) {
+    migrationPromises.push(migrateJournal(legacy.journal ?? []))
   }
 
-  // 4. Limpiamos las claves migradas de localStorage para no volver a leerlas.
+  // Paso 4: Marcamos la migración como completa y limpiamos las claves migradas de localStorage.
   localStorage.setItem(MIGRATION_FLAG, 'done')
+  await Promise.all(migrationPromises)
 
+  // 3. Si después de la migración alguna tabla sigue vacía, creamos los datos iniciales.
+  await createInitialData()
+
+  // 4. Limpiamos el localStorage de los datos ya migrados para no volver a leerlos.
   const raw = localStorage.getItem(STORAGE_KEY)
   if (raw) {
     const parsed = JSON.parse(raw) as Record<string, unknown>
@@ -459,7 +556,7 @@ async function runMigrationAndCleanup() {
 
 export function useAppData() {
   const local = useLocalAppData()
-  // Prevenimos la carga inicial de los hooks de datos.
+  // Inicializamos los hooks, pero prevenimos su carga automática de datos.
   // El orquestador se encargará de llamarlos.
   const goalsHook = useGoals(false)
   const objectivesHook = usePersonalObjectives(false)
@@ -475,19 +572,22 @@ export function useAppData() {
     async function init() {
       if (migrationDone.current) return
 
+      // Este bloque se ejecuta UNA SOLA VEZ por carga de la aplicación.
       try {
         const alreadyMigrated = localStorage.getItem(MIGRATION_FLAG) === 'done'
 
         if (!alreadyMigrated) {
+          // La función `runMigrationAndCleanup` ahora es idempotente y segura para multi-dispositivo.
           await runMigrationAndCleanup()
         }
 
+        // La función `initializeDatabase` es segura para ejecutarse en cada inicio.
+        await initializeDatabase()
         migrationDone.current = true
 
-        // Una vez asegurada la migración (o que no era necesaria),
-        // cargamos TODOS los datos desde Supabase.
+        // Una vez que la data en Supabase está garantizada (ya sea por migración,
+        // creación inicial, o porque ya existía), recargamos TODO desde cero.
         if (mounted) {
-          // Usamos Promise.all para cargar en paralelo.
           await Promise.all([
             goalsHook.reload(),
             objectivesHook.reload(),
