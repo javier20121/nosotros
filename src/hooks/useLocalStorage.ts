@@ -39,12 +39,12 @@ const defaultData: AppData = {
     },
   ],
   photos: [
-    { id: crypto.randomUUID(), src: '/imagenes/imagen_abrazo.jpeg', date: '15 Ago 2022', note: 'Atardecer en la playa', aspectRatio: '3/4' as const },
-    { id: crypto.randomUUID(), src: '/images/gallery-2.jpg', date: '20 Sep 2022', note: 'Café y croissants', aspectRatio: '4/3' as const },
-    { id: crypto.randomUUID(), src: '/images/gallery-3.jpg', date: '5 Nov 2022', note: 'Bailando bajo la lluvia', aspectRatio: '1/1' as const },
-    { id: crypto.randomUUID(), src: '/images/gallery-4.jpg', date: '14 Feb 2023', note: 'Nuestras manos, nuestro pacto', aspectRatio: '16/9' as const },
-    { id: crypto.randomUUID(), src: '/images/gallery-5.jpg', date: '3 Jun 2023', note: 'Domingo de pelis', aspectRatio: '3/4' as const },
-    { id: crypto.randomUUID(), src: '/images/gallery-6.jpg', date: '12 Ago 2023', note: 'Aventura en la montaña', aspectRatio: '4/3' as const },
+    { id: 'default-photo-1', src: '/images/imagen_espejo.jpeg', date: '15 Ago 2022', note: 'Atardecer en la playa', aspectRatio: '3/4' as const },
+    { id: 'default-photo-2', src: '/imagen_abrazo.jpeg', date: '20 Sep 2022', note: 'Café y croissants', aspectRatio: '4/3' as const },
+    { id: 'default-photo-3', src: '/images/gallery-3.jpg', date: '5 Nov 2022', note: 'Bailando bajo la lluvia', aspectRatio: '1/1' as const },
+    { id: 'default-photo-4', src: '/images/gallery-4.jpg', date: '14 Feb 2023', note: 'Nuestras manos, nuestro pacto', aspectRatio: '16/9' as const },
+    { id: 'default-photo-5', src: '/images/gallery-5.jpg', date: '3 Jun 2023', note: 'Domingo de pelis', aspectRatio: '3/4' as const },
+    { id: 'default-photo-6', src: '/images/gallery-6.jpg', date: '12 Ago 2023', note: 'Aventura en la montaña', aspectRatio: '4/3' as const },
   ],
   goals: [
     {
@@ -445,12 +445,30 @@ function loadData(): AppData {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
+
+      // --- Lógica de Migración de Fotos ---
+      // Compara las fotos guardadas con las fotos por defecto del código.
+      const defaultPhotosMap = new Map(defaultData.photos.map(p => [p.id, p]));
+      const userPhotos = (parsed.photos || []) as GalleryPhoto[];
+
+      const migratedPhotos = userPhotos.map(userPhoto => {
+        // Si la foto del usuario es una de las fotos por defecto...
+        if (defaultPhotosMap.has(userPhoto.id)) {
+          const defaultPhoto = defaultPhotosMap.get(userPhoto.id)!;
+          // ...y la ruta de la imagen ha cambiado en el código, la actualizamos.
+          if (userPhoto.src !== defaultPhoto.src) {
+            return { ...userPhoto, src: defaultPhoto.src };
+          }
+        }
+        // Si no, es una foto del usuario o una por defecto sin cambios, la dejamos como está.
+        return userPhoto;
+      });
+
       return {
         ...defaultData,
         ...parsed,
-        goals: Array.isArray(parsed.goals)
-          ? parsed.goals.map(normalizeStoredGoal)
-          : defaultData.goals,
+        photos: migratedPhotos, // Usamos las fotos migradas/actualizadas.
+        goals: Array.isArray(parsed.goals) ? parsed.goals.map(normalizeStoredGoal) : defaultData.goals,
       };
     }
   } catch {
